@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>실시간 과목 추천 시스템</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background-color: #f7f7f7;
+    }
+    h1 {
+      color: #333;
+    }
+    .semester {
+      margin-bottom: 40px;
+    }
+    .semester-title {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .selection-info {
+      font-size: 14px;
+      margin-top: -5px;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+    .subject-box {
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      background-color: #e0e0e0;
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.3s;
+    }
+    .subject-box.selected {
+      background-color: royalblue;
+      color: white;
+    }
+    .subject-box.recommend {
+      color: black;
+    }
+    .subject-name {
+      flex: 1;
+    }
+    .subject-code {
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>📚 실시간 선택 기반 과목 추천</h1>
+  <p>과목명을 직접 입력하고 클릭해 선택해보세요. 유사한 학생들의 데이터를 바탕으로 추천이 실시간 갱신됩니다.</p>
+
+  <div id="container"></div>
+
+  <script>
+    const subjectIds = [
+      // 2-1
+      "211", "212", "213", "214", "215", "216", "217", "218", "219", "2110", "2111", "2112", "2113", "2114", "2115", "2116", "2117", "2118",
+      // 2-2
+      "221", "222", "223", "224", "225", "226", "227", "228", "229", "2210", "2211", "2212", "2213", "2214", "2215", "2216", "2217", "2218",
+      // 3-1
+      "311", "312", "313", "314", "315", "316", "317", "318", "319", "3110", "3111", "3112", "3113", "3114", "3115", "3116", "3117", "3118", "3119", "3120", "3121", "3122", "3123", "3124", "3125", "3126", "3127", "3128", "3129", "3130", "3131",
+      // 3-2
+      "321", "322", "323", "324", "325", "326", "327", "328", "329", "3210", "3211", "3212", "3213", "3214", "3215", "3216", "3217", "3218", "3219", "3220", "3221", "3222", "3223", "3224"
+    ];
+
+    const semesters = [18, 18, 31, 24];
+    const semesterTitles = ["2학년 1학기", "2학년 2학기", "3학년 1학기", "3학년 2학기"];
+    const semesterMaxSelections = [5, 4, 6, 5];
+
+    const subjectNames = [
+        // 2학년 1학기
+        "국어 / 진로 / 주제 탐구 독서",
+        "수학 / 진로 / 기하",
+        "영어 / 융합 / 세계 문화와 영어",
+        "사회 / 진로 / 정치",
+        "사회 / 진로 / 한국지리 탐구",
+        "사회 / 진로 / 윤리와 사상",
+        "사회 / 융합 / 사회문제 탐구",
+        "과학 / 일반 / 물리학",
+        "과학 / 일반 / 화학",
+        "과학 / 일반 / 생명과학",
+        "과학 / 일반 / 지구과학",
+        "예술 / 진로 / 음악연주와 창작",
+        "예술 / 진로 / 미술 창작",
+        "기술가정,정보 / 일반 / 정보",
+        "기술가정,정보 / 진로 / 생활과학 탐구",
+        "제2외국어,한문 / 일반 / 일본어",
+        "제2외국어,한문 / 일반 / 중국어",
+        "제2외국어,한문 / 일반 / 한문",
+
+        // 2학년 2학기
+        "국어 / 융합 / 독서 토론과 글쓰기",
+        "영어 / 융합 / 세계 문화와 영어",
+        "사회 / 일반 / 세계사",
+        "사회 / 진로 / 경제",
+        "사회 / 일반 / 현대사회와 윤리",
+        "사회 / 일반 / 세계시민과 지리",
+        "사회 / 융합 / 사회문제 탐구",
+        "과학 / 진로 / 역학과 에너지",
+        "과학 / 진로 / 물질과 에너지",
+        "과학 / 진로 / 세포와 물질대사",
+        "과학 / 진로 / 지구시스템과학",
+        "예술 / 진로 / 음악연주와 창작",
+        "예술 / 진로 / 미술 창작",
+        "기술가정,정보 / 일반 / 정보",
+        "기술가정,정보 / 진로 / 생활과학 탐구",
+        "제2외국어,한문 / 일반 / 일본어",
+        "제2외국어,한문 / 일반 / 중국어",
+        "제2외국어,한문 / 일반 / 한문",
+
+        // 3학년 1학기
+        "국어 / 융합 / 언어 생활 탐구",
+        "수학 / 진로 / 미적분2",
+        "수학 / 진로 / 경제수학",
+        "수학 / 진로 / 인공지능수학",
+        "수학 / 융합 / 실용 통계",
+        "수학 / 융합 / 수학과제 탐구",
+        "수학 / 융합 / 수학과 문화",
+        "영어 / 진로 / 영미 문학 읽기",
+        "사회 / 진로 / 동아시아 역사 기행",
+        "사회 / 일반 / 사회와 문화",
+        "사회 / 진로 / 인문학과 윤리",
+        "사회 / 진로 / 도시의 미래 탐구",
+        "사회 / 융합 / 금융과 경제 생활",
+        "사회 / 융합 / 기후변화와 지속가능한 세계",
+        "과학 / 진로 / 전자기와 양자",
+        "과학 / 진로 / 화학 반응의 세계",
+        "과학 / 진로 / 생물의 유전",
+        "과학 / 진로 / 행성우주과학",
+        "과학 / 진로 / 고급 물리학",
+        "과학 / 진로 / 고급 생명과학",
+        "과학 / 융합 / 공학 커뮤니케이션",
+        "체육 / 진로 / 기초 체육 전공 실기",
+        "예술 / 진로 / 음악 공연 실습",
+        "예술 / 진로 / 미술 전공 실기",
+        "기술가정,정보 / 진로 / 인공지능 기초",
+        "기술가정,정보 / 융합 / 지식 재산 일반",
+        "제2외국어,한문 / 진로 / 일본어 회화",
+        "제2외국어,한문 / 융합 / 일본 문화",
+        "제2외국어,한문 / 진로 / 중국어 회화",
+        "제2외국어,한문 / 융합 / 중국 문화",
+        "제2외국어,한문 / 진로 / 한문 고전 읽기",
+
+        // 3학년 2학기
+        "국어 / 융합 / 언어생활 탐구",
+        "수학 / 진로 / 고급 미적분",
+        "수학 / 진로 / 고급 대수",
+        "영어 / 진로 / 영미 문학 읽기",
+        "사회 / 진로 / 국제관계의 이해",
+        "사회 / 진로 / 법과 사회",
+        "사회 / 융합 / 여행지리",
+        "사회 / 융합 / 역사로 탐구하는 현대 세계",
+        "사회 / 융합 / 윤리문제 탐구",
+        "과학 / 융합 / 기후변화와 환경생태",
+        "과학 / 융합 / 융합과학탐구",
+        "과학 / 융합 / 과학의 역사와 문화",
+        "체육 / 진로 / 심화 체육 전공 실기",
+        "예술 / 진로 / 음악 전공 실기",
+        "예술 / 진로 / 드로잉",
+        "기술가정,정보 / 진로 / 인공지능 기초",
+        "기술가정,정보 / 융합 / 지식 재산 일반",
+        "제2외국어,한문 / 진로 / 일본어 회화",
+        "제2외국어,한문 / 융합 / 일본 문화",
+        "제2외국어,한문 / 진로 / 중국어 회화",
+        "제2외국어,한문 / 융합 / 중국 문화",
+        "제2외국어,한문 / 진로 / 언어생활과 한자",
+        "교양 / 일반 / 생태와 환경",
+        "교양 / 진로 / 교육의 이해"
+    ];
+
+    const studentData = [
+      [0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0],
+      [0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
+      [0,1,0,0,0,0,1,1,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0,1,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0],
+      [0,1,0,0,0,0,0,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0],
+      [0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0],
+      [0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,1,1,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0]
+    ];
+
+    const selected = new Array(subjectIds.length).fill(0);
+
+    function getSemesterIndex(subjectIndex) {
+      let currentSum = 0;
+      for (let s = 0; s < semesters.length; s++) {
+        currentSum += semesters[s];
+        if (subjectIndex < currentSum) {
+          return s;
+        }
+      }
+      return -1;
+    }
+
+    function countSelectedInSemester(semesterIdx) {
+      let count = 0;
+      let startIndex = 0;
+      for (let s = 0; s < semesterIdx; s++) {
+        startIndex += semesters[s];
+      }
+      const endIndex = startIndex + semesters[semesterIdx];
+
+      for (let i = startIndex; i < endIndex; i++) {
+        if (selected[i]) {
+          count++;
+        }
+      }
+      return count;
+    }
+
+    function createSubjectBox(subjectId, name, index, score = 0, maxScore = 1) {
+      const box = document.createElement("div");
+      box.className = "subject-box";
+      box.onclick = () => {
+        const currentSemesterIndex = getSemesterIndex(index);
+        const currentSemesterSelectedCount = countSelectedInSemester(currentSemesterIndex);
+
+        if (selected[index] === 0) {
+          if (currentSemesterSelectedCount >= semesterMaxSelections[currentSemesterIndex]) {
+            alert(`${semesterTitles[currentSemesterIndex]}은(는) ${semesterMaxSelections[currentSemesterIndex]}개까지만 선택할 수 있습니다.`);
+            return;
+          }
+        }
+        selected[index] = 1 - selected[index];
+        render();
+      };
+
+      const subjectName = document.createElement("span");
+      subjectName.className = "subject-name";
+      subjectName.textContent = name;
+
+      const subjectCode = document.createElement("span");
+      subjectCode.className = "subject-code";
+      subjectCode.textContent = '';
+
+      box.appendChild(subjectName);
+      box.appendChild(subjectCode);
+
+      if (selected[index]) {
+        box.classList.add("selected");
+      } else if (score > 0) {
+        const intensity = score / maxScore;
+        box.classList.add("recommend");
+        box.style.backgroundColor = `rgba(135,206,250,${intensity})`;
+      }
+
+      return box;
+    }
+
+    function render() {
+      const container = document.getElementById("container");
+      container.innerHTML = "";
+
+      const simScores = new Array(subjectIds.length).fill(0);
+
+      studentData.forEach(student => {
+        let dot = 0, a = 0, b = 0;
+        for (let i = 0; i < subjectIds.length; i++) {
+          dot += selected[i] * student[i];
+          a += selected[i];
+          b += student[i];
+        }
+        const similarity = (a && b) ? dot / (Math.sqrt(a) * Math.sqrt(b)) : 0;
+        for (let i = 0; i < subjectIds.length; i++) {
+          if (!selected[i] && student[i]) simScores[i] += similarity;
+        }
+      });
+
+      const maxScore = Math.max(...simScores);
+
+      let start = 0;
+      for (let s = 0; s < 4; s++) {
+        const count = semesters[s];
+        const section = document.createElement("div");
+        section.className = "semester";
+
+        const title = document.createElement("div");
+        title.className = "semester-title";
+        title.textContent = semesterTitles[s];
+        section.appendChild(title);
+
+        const selectionInfo = document.createElement("div");
+        selectionInfo.className = "selection-info";
+        const currentSelectedCount = countSelectedInSemester(s);
+        const maxSelectionForSemester = semesterMaxSelections[s];
+        selectionInfo.textContent = `현재 선택: ${currentSelectedCount} / ${maxSelectionForSemester}개`;
+        
+        if (currentSelectedCount < maxSelectionForSemester) {
+          selectionInfo.style.color = 'orange';
+        } else {
+          selectionInfo.style.color = 'green';
+        }
+        section.appendChild(selectionInfo);
+
+        for (let i = 0; i < count; i++) {
+          const idx = start + i;
+          section.appendChild(
+            createSubjectBox(subjectIds[idx], subjectNames[idx], idx, simScores[idx], maxScore)
+          );
+        }
+
+        container.appendChild(section);
+        start += count;
+      }
+    }
+    render();
+  </script>
+</body>
+</html>
